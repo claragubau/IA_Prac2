@@ -72,9 +72,30 @@ class ReflexAgent(Agent):
         newFood = successorGameState.getFood()
         newGhostStates = successorGameState.getGhostStates()
         newScaredTimes = [ghostState.scaredTimer for ghostState in newGhostStates]
+        score = successorGameState.getScore()
+        foodArray = newFood.asList()
 
         "*** YOUR CODE HERE ***"
-        return successorGameState.getScore()
+
+        #TODO: try adding newScaredTimes
+
+        for ghostState in newGhostStates:
+            ghostPos = ghostState.getPosition()
+            ghostDist = manhattanDistance(newPos, ghostPos)
+
+            if ghostDist > 0:
+                score -= 1.0 / ghostDist
+
+        for foodPos in foodArray:
+            foodDist = manhattanDistance(newPos, foodPos)
+
+            if foodDist > 0:
+                score += 1.0 / foodDist
+
+        return score
+
+
+
 
 def scoreEvaluationFunction(currentGameState):
     """
