@@ -77,22 +77,40 @@ class ReflexAgent(Agent):
 
         "*** YOUR CODE HERE ***"
 
-        #TODO: try adding newScaredTimes
+        remainingFood = newFood.asList()
+        currentFood = currentGameState.getFood().asList()
 
-        for ghostState in newGhostStates:
-            ghostPos = ghostState.getPosition()
-            ghostDist = manhattanDistance(newPos, ghostPos)
+        score = 0
+        foodPos = []
+        ghostPos = []
 
-            if ghostDist > 0:
-                score -= 1.0 / ghostDist
+        for food in remainingFood:
+            foodPos.append(manhattanDistance(newPos, food))
+        for ghost in newGhostStates:
+            ghostPos.append(manhattanDistance(newPos, ghost.configuration.getPosition()))
 
-        for foodPos in foodArray:
-            foodDist = manhattanDistance(newPos, foodPos)
+        if foodPos:
+            closest = min(foodPos)
 
-            if foodDist > 0:
-                score += 1.0 / foodDist
+            if newPos not in currentFood:
+                score -= closest
+
+        if ghostPos:
+            closest = min(ghostPos)
+
+            scared = True
+
+            for ghostStatus in newScaredTimes:
+                if ghostStatus == 0:
+                    scared = False
+                    break
+
+            if scared == False:
+                if closest < 2:
+                    score = -9999
 
         return score
+
 
 
 
@@ -156,7 +174,7 @@ class MinimaxAgent(MultiAgentSearchAgent):
         Returns whether or not the game state is a losing state
         """
         "*** YOUR CODE HERE ***"
-        util.raiseNotDefined()
+
 
 class AlphaBetaAgent(MultiAgentSearchAgent):
     """
