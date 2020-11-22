@@ -323,63 +323,71 @@ class ExpectimaxAgent(MultiAgentSearchAgent):
         legal moves.
         """
         "*** YOUR CODE HERE ***"
+        return self.value(gameState, 0, 0)
 
-        depth = 0
-        numAgents = gameState.getNumAgents()
-        x = float("-inf")
-        y = float("inf")
+    def value(self, gameState, depth, agentIndex):
+        if gameState.isWin() or gameState.isLose() or depth == self.depth:
+            return self.evaluationFunction(gameState)
 
-        def value(gameState, depth, alpha, beta):
+        #si el agentIndex = 0, significa que el pacman es óptimo
+        if (agentIndex == 0):
+            return self.maxValue(gameState, depth, agentIndex)
 
-            if gameState.isWin() or gameState.isLose() or depth/numAgents >= self.depth:
-                return self.evaluationFunction(gameState)
+        #por lo contrario, en este caso el fantasma es óptimo
+        else:
+            return self.expectValue(gameState, depth, agentIndex)
 
-            currentAgent = depth % numAgents
+    # max value function passing the depth and agent index
+    def maxValue(self, gameState, depth, agentIndex):
+        # initialize the current value as negative infinity
+        v = float('-inf')
 
-            if currentAgent == 0:
-                return  maxValue(gameState, depth, alpha, beta)
+        # condition check: if it is already in the win or lose or the depth is its current depth,
+        # go the the evaluation function and calculate the distance
+        if gameState.isWin() or gameState.isLose() or depth == self.depth:
+            return self.evaluationFunction(gameState)
 
-            else:
-                return minValue(gameState, depth, alpha, beta)
+        else:
+            # loop through the actions of the agent (pacman)
+            action_list = gameState.getLegalActions(agentIndex)
+            for action in action_list:
+                child = gameState.generateSuccessor(agentIndex, action)  # the child (successor)
 
-        def maxValue(gameState, depth, alpha, beta):
+                # pass the min_value function by incrementing agent to ghost
+                maxi = self.expectValue(child, depth, agentIndex + 1)
 
-            currentAgent = 0
-            agentActions = gameState.getLegalActions(currentAgent)
+                # if the max value is greater than the stored max value, replace it
+                if maxi > v:
+                    v = maxi
+                    result = action  # for the getAction function use.
 
-            v = float("-inf")
+        # if the state reaches to itself, meaning the state depth is 0 and it should be the pacman's state (max_value)
+        if depth == 0:
+            return result
+        else:
+            return v  # if not, continue by passing the maximum value
 
-            for action in agentActions:
-                successor = gameState.generateSuccessor(0, action)
-                successorValue = value(successor, depth+1, alpha, beta)
-                v = max(v, successorValue)
+    # expect value function passing the depth and agent index
+    def expectValue(self, gameState, depth, agentIndex):
+        # initialize v equals to 0 as the slide shown
+        v = 0
+        if gameState.isWin() or gameState.isLose() or depth == self.depth:
+            return self.evaluationFunction(gameState)
 
-            return v
+        else:
+            action_list = gameState.getLegalActions(agentIndex)
+            for action in action_list:
+                # if the agent is in the last position of the agents list, meaning we should go to the next level of
+                # the tree and reset it to the pacman agent
+                if agentIndex == gameState.getNumAgents() - 1:
+                    v += self.maxValue(gameState.generateSuccessor(agentIndex, action), depth + 1, 0)
 
-        def minValue(gameState, depth, alpha, beta):
-            currentAgent = depth % numAgents
-            agentActions = gameState.getLegalActions(currentAgent)
+                # else, continue traversing the ghost optimal tree
+                else:
+                    v += self.expectValue(gameState.generateSuccessor(agentIndex, action), depth, agentIndex + 1)
 
-            values = []
+        return v / len(action_list)  # This is the result with the probability
 
-            for action in agentActions:
-                successor = gameState.generateSuccessor(currentAgent, action)
-                values.append(value(successor, depth+1, alpha, beta))
-
-            return sum(values)/float(len(values))
-
-
-        values = []
-
-        pacmanActions = gameState.getLegalActions(0)
-
-        for action in pacmanActions:
-            values.append(value(gameState.generateSuccessor(0, action), depth+1, x, y))
-
-        maxV = max(values)
-        maxIndex = values.index(maxV)
-
-        return pacmanActions[maxIndex]
 
 
 def betterEvaluationFunction(currentGameState):
