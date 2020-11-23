@@ -108,7 +108,7 @@ class ReflexAgent(Agent):
             #como queremos alejarnos, si está muy cerca y no asustado, bajamos la puntuación
             if scared == False:
                 if closest < 2:
-                    score = -9999
+                    score = float("-inf")
         return score
 
 
@@ -207,12 +207,11 @@ class MinimaxAgent(MultiAgentSearchAgent):
             #inicializamos la puntuación minima a inf para que nos haga bien el minimo
             minValue = float("inf")
 
-            #ahora debemos estudiar qué nos conviene más, si maxFunction o minFunction
-            #en el caso de que tengamos un agentIndex menor q el numero de agentes-1,
-            #debemos utilizar el minFunction otra vez
+            #agentIndex < numero de agentes -1 significa que todavía no estamos en el último nivel
+            #del árbol por tanto, podemos seguir minimizando las acciones de los agents
             if(agentIndex < gameState.getNumAgents() - 1):
                 chosenMethod, newAgentIndex = (minFunction, agentIndex + 1)
-            #en caso contrario, hacemos maxFunction normal
+            #en caso contrario, pasamos a maximizar el movimiento del pacman
             else:
                 chosenMethod, newAgentIndex = (maxFunction, 0)
 
@@ -283,12 +282,11 @@ class AlphaBetaAgent(MultiAgentSearchAgent):
             #inicializamos la puntuación minima a inf para que nos haga bien el minimo
             minValue = float("inf")
 
-            #ahora debemos estudiar qué nos conviene más, si maxFunction o minFunction
-            #en el caso de que tengamos un agentIndex menor q el numero de agentes-1,
-            #debemos utilizar el minFunction otra vez
+            #agentIndex < numero de agentes -1 significa que todavía no estamos en el último nivel
+            #del árbol por tanto, podemos seguir minimizando las acciones de los agentes
             if(agentIndex < gameState.getNumAgents() - 1):
                 methodName, newAgentIndex = (minFunction, agentIndex + 1)
-            #en caso contrario, hacemos maxFunction normal
+            #en caso contrario, pasamos a maximizar el movimiento del pacman
             else:
                 methodName, newAgentIndex = (maxFunction,0)
 
@@ -325,7 +323,7 @@ class ExpectimaxAgent(MultiAgentSearchAgent):
         "*** YOUR CODE HERE ***"
         return self.value(gameState, 0, 0)
 
-    #vamos a hacer las tres funciones separadas, value, maxvalue y expectvalue
+    #vamos a hacer las tres funciones separadas, value, maxFunction y expectFunction
     def value(self, gameState, depth, agentIndex):
         #primero siempre comprovamos si es un estado final o no
         if gameState.isWin() or gameState.isLose() or depth == self.depth:
@@ -334,14 +332,14 @@ class ExpectimaxAgent(MultiAgentSearchAgent):
         #si el agentIndex = 0, significa que el pacman es óptimo
         #por tanto, debemos aplicar al gameState la función maxValue
         if (agentIndex == 0):
-            return self.maxValue(gameState, depth, agentIndex)
+            return self.maxFunction(gameState, depth, agentIndex)
 
         #por lo contrario, en este caso el fantasma es óptimo y aplicaremos expectValue
         else:
-            return self.expectValue(gameState, depth, agentIndex)
+            return self.expectFunction(gameState, depth, agentIndex)
 
 
-    def maxValue(self, gameState, depth, agentIndex):
+    def maxFunction(self, gameState, depth, agentIndex):
         #incializamos el valor a -inf para que haga correctamente el máximo
         maxValue = float('-inf')
 
@@ -349,43 +347,44 @@ class ExpectimaxAgent(MultiAgentSearchAgent):
         if gameState.isWin() or gameState.isLose() or depth == self.depth:
             return self.evaluationFunction(gameState)
 
-        else:
-            #por cada acción, miramos sus hijos y nos quedamos con el que nos de valor máximo
-            for action in gameState.getLegalActions(agentIndex):
-                successor = gameState.generateSuccessor(agentIndex, action)
-                value = self.expectValue(successor, depth, agentIndex + 1)
+        #por cada acción, miramos sus hijos y nos quedamos con el que nos de valor máximo
+        for action in gameState.getLegalActions(agentIndex):
+            successor = gameState.generateSuccessor(agentIndex, action)
+            value = self.expectFunction(successor, depth, agentIndex + 1)
 
-                #hacemos el if correspondiente a la búsqueda del valor máximo
-                if value > maxValue:
-                    maxValue = value
-                    maxAction = action
+            #hacemos el if correspondiente a la búsqueda del valor máximo
+            if value > maxValue:
+                maxValue = value
+                maxAction = action
 
-        # if the state reaches to itself, meaning the state depth is 0 and it should be the pacman's state (max_value)
+        #debemos tener en cuenta cuando el estado llega a él mismo (en ese caso la depth = 0)
         if depth == 0:
             return maxAction
+        #si no es el caso, enviamos el maxValue como siempre
         else:
-            return maxValue  # if not, continue by passing the maximum value
+            return maxValue
 
-    # expect value function passing the depth and agent index
-    def expectValue(self, gameState, depth, agentIndex):
-        # initialize v equals to 0 as the slide shown
-        v = 0
+    def expectFunction(self, gameState, depth, agentIndex):
+        #inicalizamos el value a 0 para poder hacer sumas luego
+        value = 0
+        #comprovamos que no sea estado terimal
         if gameState.isWin() or gameState.isLose() or depth == self.depth:
             return self.evaluationFunction(gameState)
 
-        else:
-            action_list = gameState.getLegalActions(agentIndex)
-            for action in action_list:
-                # if the agent is in the last position of the agents list, meaning we should go to the next level of
-                # the tree and reset it to the pacman agent
-                if agentIndex == gameState.getNumAgents() - 1:
-                    v += self.maxValue(gameState.generateSuccessor(agentIndex, action), depth + 1, 0)
+        for action in gameState.getLegalActions(agentIndex):
+            #si el agentIndex corresponde a la última posición de la lista de agentes, debemos ir al siguiente
+            #nivel del árbol y continuar buscando el valor máximo del pacman
+            if agentIndex == gameState.getNumAgents() - 1:
+                successor = gameState.generateSuccessor(agentIndex, action)
+                value += self.maxFunction(successor, depth + 1, 0)
 
-                # else, continue traversing the ghost optimal tree
-                else:
-                    v += self.expectValue(gameState.generateSuccessor(agentIndex, action), depth, agentIndex + 1)
+            #en caso contrario, continuamos con la función expect
+            else:
+                successor = gameState.generateSuccessor(agentIndex, action)
+                value += self.expectFunction(successor, depth, agentIndex + 1)
 
-        return v / len(action_list)  # This is the result with the probability
+        #devovemos la probabilidad del resultado
+        return value / len(gameState.getLegalActions(agentIndex))
 
 
 
@@ -394,50 +393,62 @@ def betterEvaluationFunction(currentGameState):
     Your extreme ghost-hunting, pellet-nabbing, food-gobbling, unstoppable
     evaluation function (question 5).
 
-    DESCRIPTION: <write something here so we know what you did>
+    DESCRIPTION: la intención de esta función es encontrar el agente más cercano,
+    la capsule más cercana y la comida restante y combinar estos tres elementos
+    para conseguir una buena función de evaluación para que el pacman se mueva correctamente
     """
+    currentGameScore = scoreEvaluationFunction(currentGameState)
 
-    #calculamos el ghost que está más cerca
+    #agente más cercano:
+    #inicializamos las variables que vamos a necesitar
     currentGhostStates = currentGameState.getGhostStates()
-    currentScaredTimes = [ghostState.scaredTimer for ghostState in currentGhostStates]
     pacmanPosition = currentGameState.getPacmanPosition()
-    minGhostDistance = 9999
+    minGhostDistance = float("inf")
+
+    #iremos recorriendo la lista de todos para ver cuál es el más cercano
     for ghost in currentGhostStates:
+        #lo que determinará la distancia será la distáncia de manhattan
         ghostDistance = manhattanDistance(pacmanPosition, ghost.getPosition())
         if ghostDistance < minGhostDistance:
             minGhostDistance = ghostDistance
+
+    #hacemos el if para evitar dividir entre zero
     if minGhostDistance == 0:
         minGhostDistance = 1
 
 
-    #calculamos dónde está la capsule más cercana
+    #capsule más cercana:
+    #inicializamos las variables que vamos a necesitar
     pacmanPosition = currentGameState.getPacmanPosition()
     currentCapsules = currentGameState.getCapsules()
+    minCapsuleDistance = 0
+
+    #comprovamos si hay alguna
     if (currentCapsules):
-        minCapsuleDistance = 9999
+        #en ese caso, lo inicializamos para que haga bien el mínimo
+        minCapsuleDistance = float("inf")
+
+        #iremos recorriendolas todas para hacer el mínimo
         for capsule in currentCapsules:
             capsuleDistance = manhattanDistance(pacmanPosition,capsule)
             if capsuleDistance < minCapsuleDistance:
                 minCapsuleDistance = capsuleDistance
 
-    else:
-        minCapsuleDistance = 0
 
     #finalmente calculamos el average de la comida que queda por comer
+    #inicializamos las variables que vamos a usar
     currentFood = currentGameState.getFood()
     currentPosition = currentGameState.getPacmanPosition()
     foodDistance = []
+
     for x, row in enumerate(currentFood):
         for y, column in enumerate(currentFood[x]):
             if currentFood[x][y]:
                 foodDistance.append(manhattanDistance(currentPosition, (x,y)))
     avg = sum(foodDistance)/float(len(foodDistance)) if (foodDistance and sum(foodDistance) != 0) else 1
 
-    currentGameScore = scoreEvaluationFunction(currentGameState)
-    ghostDistance = minGhostDistance
-    capsuleDistance = minCapsuleDistance
 
-    return currentGameScore - avg + 2.0/ghostDistance - currentGameState.getNumFood() - capsuleDistance
+    return currentGameScore - avg + 2.0/minGhostDistance - currentGameState.getNumFood() - minCapsuleDistance
 
 # Abbreviation
 better = betterEvaluationFunction
