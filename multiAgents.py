@@ -184,18 +184,18 @@ class MinimaxAgent(MultiAgentSearchAgent):
                 return (self.evaluationFunction(gameState),None)
 
             #inicializamos la puntuación maxima a -inf para que nos haga bien el máximo
-            maxScore = float("-inf")
+            maxValue = float("-inf")
 
             #por cada acción que podamos hacer, cogemos los sucesores y, siguendo el algoritmo
             #invocamos la función minFunction para encontrar la de coste mínimo
             for action in gameState.getLegalActions(agentIndex):
                 successor = gameState.generateSuccessor(agentIndex, action)
-                minScore = minFunction(successor, depth, agentIndex + 1)[0]
+                value = minFunction(successor, depth, agentIndex + 1)[0]
                 #con este if nos aseguramos que cogemos el màximo
-                if minScore > maxScore:
-                    maxScore = minScore
+                if value > maxValue:
+                    maxValue = value
                     maxAction = action
-            return (maxScore, maxAction)
+            return (maxValue, maxAction)
 
         #para la función de mínimo hacemos un procedimiento similar
         def minFunction(gameState, depth, agentIndex):
@@ -205,25 +205,25 @@ class MinimaxAgent(MultiAgentSearchAgent):
                 return (self.evaluationFunction(gameState),None)
 
             #inicializamos la puntuación minima a inf para que nos haga bien el minimo
-            minScore = float("inf")
+            minValue = float("inf")
 
             #ahora debemos estudiar qué nos conviene más, si maxFunction o minFunction
             #en el caso de que tengamos un agentIndex menor q el numero de agentes-1,
-            #es mejor utilizar el minFunction otra vez
+            #debemos utilizar el minFunction otra vez
             if(agentIndex < gameState.getNumAgents() - 1):
                 chosenMethod, newAgentIndex = (minFunction, agentIndex + 1)
             #en caso contrario, hacemos maxFunction normal
             else:
-                chosenMethod, newAgentIndex = (maxFunction,0)
+                chosenMethod, newAgentIndex = (maxFunction, 0)
 
             #el for es análogo al de maxFunction
             for action in gameState.getLegalActions(agentIndex):
                 successor = gameState.generateSuccessor(agentIndex, action)
-                score = chosenMethod(successor, depth, newAgentIndex)[0]
-                if score < minScore:
-                    minScore = score
+                value = chosenMethod(successor, depth, newAgentIndex)[0]
+                if value < minValue:
+                    minValue = value
                     minAction = action
-            return (minScore, minAction)
+            return (minValue, minAction)
 
         #finalmente, devolvemos la acción final máxima
         return maxFunction(gameState, self.depth, 0)[1]
@@ -252,26 +252,26 @@ class AlphaBetaAgent(MultiAgentSearchAgent):
                 return (self.evaluationFunction(gameState),None)
 
             #inicializamos la puntuación maxima a -inf para que nos haga bien el máximo
-            maxScore = float("-inf")
+            maxValue = float("-inf")
 
             #por cada acción que podamos hacer, cogemos los sucesores y, siguendo el algoritmo
             #invocamos la función minFunction para encontrar la de coste mínimo
             for action in gameState.getLegalActions(agentIndex):
                 successor = gameState.generateSuccessor(agentIndex, action)
-                minScore = minFunction(successor, depth, agentIndex + 1, alpha, beta)[0]
+                value = minFunction(successor, depth, agentIndex + 1, alpha, beta)[0]
                 #con este if nos aseguramos que cogemos el màximo
-                if minScore > maxScore:
-                    maxScore = minScore
+                if value > maxValue:
+                    maxValue = value
                     maxAction = action
 
                 #comprovamos si nuestra score es mayor que beta
-                if maxScore > beta:
+                if maxValue > beta:
                     #en ese caso devolvemos directamente la score y la acción
-                    return (maxScore, maxAction)
+                    return (maxValue, maxAction)
 
                 #tal como indica el algoritmo, alpha = maximo entre la acción y alpha
-                alpha = max(alpha, maxScore)
-            return (maxScore, maxAction)
+                alpha = max(alpha, maxValue)
+            return (maxValue, maxAction)
 
         #para la función de mínimo hacemos un procedimiento similar
         def minFunction(gameState, depth, agentIndex, alpha, beta):
@@ -281,11 +281,11 @@ class AlphaBetaAgent(MultiAgentSearchAgent):
                 return (self.evaluationFunction(gameState),None)
 
             #inicializamos la puntuación minima a inf para que nos haga bien el minimo
-            minScore = float("inf")
+            minValue = float("inf")
 
             #ahora debemos estudiar qué nos conviene más, si maxFunction o minFunction
             #en el caso de que tengamos un agentIndex menor q el numero de agentes-1,
-            #es mejor utilizar el minFunction otra vez
+            #debemos utilizar el minFunction otra vez
             if(agentIndex < gameState.getNumAgents() - 1):
                 methodName, newAgentIndex = (minFunction, agentIndex + 1)
             #en caso contrario, hacemos maxFunction normal
@@ -295,17 +295,17 @@ class AlphaBetaAgent(MultiAgentSearchAgent):
             #el for es análogo al de maxFunction
             for action in gameState.getLegalActions(agentIndex):
                 successor = gameState.generateSuccessor(agentIndex, action)
-                score = methodName(successor, depth, newAgentIndex, alpha, beta)[0]
-                if score < minScore:
-                    minScore = score
+                value = methodName(successor, depth, newAgentIndex, alpha, beta)[0]
+                if value < minValue:
+                    minValue = value
                     minAction = action
                 #comprovamos que el score de la acción es menor que alpha
-                if minScore < alpha:
+                if minValue < alpha:
                     #en ese caso lo devolvemos
-                    return (minScore, minAction)
+                    return (minValue, minAction)
                 #tal como indica el algoritmo, cogemos beta = minimo entre beta y la acción
-                beta = min(beta, minScore)
-            return (minScore, minAction)
+                beta = min(beta, minValue)
+            return (minValue, minAction)
 
         #finalmente, devolvemos la acción final máxima
         return maxFunction(gameState, self.depth, 0, float("-inf"), float("inf"))[1]
@@ -325,47 +325,46 @@ class ExpectimaxAgent(MultiAgentSearchAgent):
         "*** YOUR CODE HERE ***"
         return self.value(gameState, 0, 0)
 
+    #vamos a hacer las tres funciones separadas, value, maxvalue y expectvalue
     def value(self, gameState, depth, agentIndex):
+        #primero siempre comprovamos si es un estado final o no
         if gameState.isWin() or gameState.isLose() or depth == self.depth:
             return self.evaluationFunction(gameState)
 
         #si el agentIndex = 0, significa que el pacman es óptimo
+        #por tanto, debemos aplicar al gameState la función maxValue
         if (agentIndex == 0):
             return self.maxValue(gameState, depth, agentIndex)
 
-        #por lo contrario, en este caso el fantasma es óptimo
+        #por lo contrario, en este caso el fantasma es óptimo y aplicaremos expectValue
         else:
             return self.expectValue(gameState, depth, agentIndex)
 
-    # max value function passing the depth and agent index
-    def maxValue(self, gameState, depth, agentIndex):
-        # initialize the current value as negative infinity
-        v = float('-inf')
 
-        # condition check: if it is already in the win or lose or the depth is its current depth,
-        # go the the evaluation function and calculate the distance
+    def maxValue(self, gameState, depth, agentIndex):
+        #incializamos el valor a -inf para que haga correctamente el máximo
+        maxValue = float('-inf')
+
+        #comprovamos si es un estado final y en ese caso calculamos la score del gameState
         if gameState.isWin() or gameState.isLose() or depth == self.depth:
             return self.evaluationFunction(gameState)
 
         else:
-            # loop through the actions of the agent (pacman)
-            action_list = gameState.getLegalActions(agentIndex)
-            for action in action_list:
-                child = gameState.generateSuccessor(agentIndex, action)  # the child (successor)
+            #por cada acción, miramos sus hijos y nos quedamos con el que nos de valor máximo
+            for action in gameState.getLegalActions(agentIndex):
+                successor = gameState.generateSuccessor(agentIndex, action)
+                value = self.expectValue(successor, depth, agentIndex + 1)
 
-                # pass the min_value function by incrementing agent to ghost
-                maxi = self.expectValue(child, depth, agentIndex + 1)
-
-                # if the max value is greater than the stored max value, replace it
-                if maxi > v:
-                    v = maxi
-                    result = action  # for the getAction function use.
+                #hacemos el if correspondiente a la búsqueda del valor máximo
+                if value > maxValue:
+                    maxValue = value
+                    maxAction = action
 
         # if the state reaches to itself, meaning the state depth is 0 and it should be the pacman's state (max_value)
         if depth == 0:
-            return result
+            return maxAction
         else:
-            return v  # if not, continue by passing the maximum value
+            return maxValue  # if not, continue by passing the maximum value
 
     # expect value function passing the depth and agent index
     def expectValue(self, gameState, depth, agentIndex):
