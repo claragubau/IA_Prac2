@@ -96,6 +96,7 @@ class ReflexAgent(Agent):
             if newPos not in currentFood:
                 score -= closest
 
+        #si hay fantasmas, calculamos la distancia hasta el más cerca
         if ghostPos:
             closest = min(ghostPos)
             scared = True
@@ -441,10 +442,14 @@ def betterEvaluationFunction(currentGameState):
     currentPosition = currentGameState.getPacmanPosition()
     foodDistance = []
 
+    #recorremos toda la grid del mapa comprovando si hay comida
     for x, row in enumerate(currentFood):
         for y, column in enumerate(currentFood[x]):
             if currentFood[x][y]:
+                #en caso de que haya comida en esa posicion, añadimos la distancia de la comida al pacman
                 foodDistance.append(manhattanDistance(currentPosition, (x,y)))
+    #el average sera 1 si no tenemos elementos en foodDistance o si la suma es = 0, en caso contrario
+    #el average se calculara normal
     avg = sum(foodDistance)/float(len(foodDistance)) if (foodDistance and sum(foodDistance) != 0) else 1
 
 
